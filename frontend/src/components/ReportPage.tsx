@@ -23,6 +23,7 @@ const ReportPage: React.FC = () => {
       });
       console.log('Token:', keycloak.token);
       
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

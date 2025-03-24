@@ -1,41 +1,42 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-   // [Authorize] // Требуем аутентификации
+    // [Authorize] // Требуем аутентификации
     public class ReportsController : ControllerBase
     {
         // GET: api/reports
         [HttpGet]
-        public ActionResult<IEnumerable<Report>> GetReports()
+        public ActionResult GetReports()
         {
-            if (!User.IsInRole("prothetic_user"))
+            if (!CheckUserRole(User))
             {
                 return Forbid(); // 403 Forbidden, если у пользователя нет роли
             }
-
-            // Генерация произвольных данных
-            var reports = new List<Report>
-            {
-                new Report { Id = 1, Title = "Monthly Sales Report", Content = "Sales increased by 10% this month." },
-                new Report { Id = 2, Title = "Quarterly Financial Report", Content = "Revenue reached $1M this quarter." },
-                new Report { Id = 3, Title = "Annual Performance Report", Content = "Company achieved all goals for the year." }
-            };
-
-            return Ok(reports);
+            var file = System.IO.File.ReadAllBytes("1.png");
+            HttpContext.Response.Headers.ContentDisposition = "inline;filename=1.png";
+            return File(file, "application/pdf", "1.png");
         }
-    }
 
-    // Модель отчета
-    public class Report
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Content { get; set; }
+        public bool CheckUserRole(ClaimsPrincipal user)
+        {
+            // Ищем утверждение с realm_access
+            var realmAccessClaim = user.Claims.FirstOrDefault(c => c.Type == "realm_access");
+            if (realmAccessClaim == null)
+            {
+                Console.WriteLine("realm_access claim not found");
+                return false;
+            }
+            return realmAccessClaim.Value.Contains("prothetic_user");
+        }
     }
 }
